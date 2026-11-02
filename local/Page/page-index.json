@@ -1,0 +1,34 @@
+{
+        "pageheaders": [
+                {
+                        "name": "titlepagemodule",
+                        "data": {
+                                "title": "Demo Chat Stream"
+                        }
+                }, {
+                        "name": "metapagemodule",
+                        "data": {
+                                "robots": "noindex,nofollow"
+                        }
+                }, {
+                        "name": "multilangpagemodule"
+                }, {
+                        "name": "jquerycookiebarpagemodule"
+                }, {
+                        "name": "base3pagemodule"
+                }, {
+                        "name": "assetloaderpagemodule"
+                }
+        ],
+        "pagecontents": [
+                {
+                        "name": "pageheader"
+		}, {
+                        "name": "pagecontent",
+                        "data": {
+                                "content": "<p>This is just a demo.</p>"
+                        }
+                }
+        ]
+}
+

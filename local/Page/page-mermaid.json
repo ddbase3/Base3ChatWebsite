@@ -1,0 +1,41 @@
+{
+        "pageheaders": [
+                {
+                        "name": "titlepagemodule",
+                        "data": {
+                                "title": "Demo Mermaid"
+                        }
+                }, {
+                        "name": "metapagemodule",
+                        "data": {
+                                "robots": "noindex,nofollow"
+                        }
+                }, {
+                        "name": "multilangpagemodule"
+                }, {
+                        "name": "jquerycookiebarpagemodule"
+                }, {
+                        "name": "base3pagemodule"
+                }, {
+                        "name": "assetloaderpagemodule"
+                }
+        ],
+        "pagecontents": [
+                {
+                        "name": "pageheader"
+                }, {
+                        "name": "pagecontent",
+                        "data": {
+                                "content": "<h1>Mermaid Diagrams in BASE3</h1><p>This is a little Mermaid demo.</p>"
+                        }
+                }, {
+                        "name": "displaypagemodule",
+			"data": {
+				"display": "mermaiddisplay",
+				"data": {
+					"mermaid": "flowchart TD\n\tA[Start] --> B{Entscheidung}\n\tB -->|Ja| C[Weiter]\n\tB -->|Nein| D[Abbruch]\n\tC --> E[Ende]\n\tD --> E"
+				}
+			}
+                }
+        ]
+}
