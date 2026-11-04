@@ -1,10 +1,10 @@
 # Privacy and data-flow inventory: Base3ChatWebsite
 
-**Review date:** 2026-11-02. **Source snapshot:** the supplied project archive, including the checked-out source at Git HEAD `e08f64a` and its additional working-tree files, transformed for the `Base3ChatWebsite` module identity. **Module manifest version:** `1.0.0` (new module identity). This document describes observable code, not a legal privacy notice or a claim of GDPR compliance.
+**Review date:** 2026-11-03. **Source snapshot:** the supplied project archive, including the checked-out source at Git HEAD `e08f64a` and its additional working-tree files, transformed for the `Base3ChatWebsite` module identity. **Module manifest version:** `1.0.0` (new module identity). This document describes observable code, not a legal privacy notice or a claim of GDPR compliance.
 
 ## 1. Scope and limitations
 
-The plugin contains chat endpoints, agent examples, SSE demonstrations, diagnostic output, page configurations, and a photo-mosaic canvas tool. Supporting BASE3, MissionBay, Chatbot, EventTransport, DataHawk and provider implementations are not contained here. Their actual storage, recipient lists, security and retention must be assessed from the deployed sources and settings.
+The plugin contains synchronous chat endpoints, an agent example, diagnostic output, page configurations, and a photo-mosaic canvas tool. Supporting BASE3, MissionBay, Chatbot, DataHawk and provider implementations are not contained here. Their actual storage, recipient lists, security and retention must be assessed from the deployed sources and settings.
 
 ## 2. Roles and responsibility boundaries
 
@@ -16,11 +16,11 @@ The demo features process entered chat text and optional feedback, generated AI 
 
 ## 4. Collection and entry points
 
-`src/Chat/DemoService.php`, `DemoServiceSync.php`, `DemoServiceAgent.php`, `DemoServiceAgentProxy.php` and `DemoServiceAgentStream.php` process browser requests or delegate to agent flows. `src/Content/Sse.php` sends test events; `src/Content/DataHawkTest.php` reads query results. `src/MissionBay/PhotoMosaicDemoAgentTool.php` opens an external iframe when invoked. `local/Page/*.json` provides example page definitions.
+`src/Chat/DemoServiceSync.php` and `src/Chat/DemoServiceAgent.php` process browser requests or delegate to agent flows. `src/Content/DataHawkTest.php` reads query results. `src/MissionBay/PhotoMosaicDemoAgentTool.php` opens an external iframe when invoked. `local/Page/*.json` provides example page definitions.
 
 ## 5. Storage and data locations
 
-The plugin ships static JSON, text, template and example SSE files. It does not itself define a domain database schema or migrations. `src/Base3ChatWebsitePlugin.php` configures `ISession`, a MySQL-based `IDatabase` default, and a database-backed `ISettingsStore`. Runtime storage performed through these services belongs to their actual installed backends. The agent flow JSON references session memory, time memory, Qdrant/vector resources, and logging resources, but their concrete persistence cannot be established from this archive. Host cache, queue, backup and audit stores are not described by available implementation sources.
+The plugin ships static JSON, text and template files. It does not itself define a domain database schema or migrations. `src/Base3ChatWebsitePlugin.php` configures `ISession`, a MySQL-based `IDatabase` default, and a database-backed `ISettingsStore`. Runtime storage performed through these services belongs to their actual installed backends. The retained agent flow JSON references session memory. The concrete persistence of dependent session/memory services cannot be established from this archive. Host cache, queue, backup and audit stores are not described by available implementation sources.
 
 ## 6. Stored fields and sensitivity
 
@@ -32,11 +32,11 @@ The plugin registers the existing authentication and access-control middleware a
 
 ## 8. Recipients and external connections
 
-`DemoService` and `DemoServiceSync` call the configured `openai` endpoint's `/chat/completions` API and send prompts. The agent-flow configurations refer to OpenAI model/embedding resources, Telegram, Qdrant, web fetch, weather, currency and other tools, subject to actual availability and invocation. `PhotoMosaicDemoAgentTool.php` can embed `https://mosaic-creator.de/mosaicgallery.php?embed`; when displayed, the browser connects to that website. An Account microservice is used for identity information; a Data microservice can be used for DataHawk. Actual operators, jurisdictions and subprocessors are deployment-dependent.
+`DemoServiceSync` calls the configured `openai` endpoint's `/chat/completions` API and sends prompts. The retained agent-flow configuration refers to an OpenAI chat model, session memory and a Telegram tool, subject to actual availability and invocation. `PhotoMosaicDemoAgentTool.php` can embed `https://mosaic-creator.de/mosaicgallery.php?embed`; when displayed, the browser connects to that website. An Account microservice is used for identity information; a Data microservice can be used for DataHawk. Actual operators, jurisdictions and subprocessors are deployment-dependent.
 
 ## 9. Credentials and configuration
 
-The demonstration endpoints read `openai` configuration values for the API URL and key. Agent-flow resources refer to `openai`, `qdrant` and `telegram` configuration entries. Secrets are not defined in `base3.json`; their storage and protection depend on the active BASE3 configuration and provider plugins. No claim is made about encrypted storage, key rotation or account policy.
+The demonstration endpoints read `openai` configuration values for the API URL and key. The retained agent-flow resource definitions refer to `openai` and `telegram` configuration entries. Secrets are not defined in `base3.json`; their storage and protection depend on the active BASE3 configuration and provider plugins. No claim is made about encrypted storage, key rotation or account policy.
 
 ## 10. Retention and cleanup
 
@@ -52,7 +52,7 @@ Backup storage, backup expiration, restoration and any re-deletion on restore ar
 
 ## 13. Logs and observability
 
-The example flow configurations name logger scopes `Base3ChatWebsite` and `Base3ChatWebsiteSuggestions`. The actual logger implementation, fields, destinations and retention are not included. `src/Chat/*.bin` contains static sample SSE output, not code that writes runtime logs. Web server, PHP and external-provider logs depend on deployment.
+The removed streaming flow configurations referenced the logger scopes `Base3ChatWebsite` and `Base3ChatWebsiteSuggestions`. The retained flow does not define a logger resource. Actual host and provider log destinations and retention are not included. The removed streaming demo sample files did not write runtime logs. Web server, PHP and external-provider logs depend on deployment.
 
 ## 14. International transfers
 
@@ -68,11 +68,11 @@ Contact channels, controller identity and execution of data-subject requests mus
 
 ## 17. Default and optional processing
 
-Static page examples include chatbot and SSE integrations. Whether those pages are routable and which provider calls occur depends on host configuration, credentials, user actions and selected flows. Some page definitions reference `jquerycookiebarpagemodule`, but this archive does not establish cookie categories, consent timing or exemption rules. The optional external iframe is triggered by the corresponding agent tool.
+Static page examples include synchronous chatbot integrations. Whether those pages are routable and which provider calls occur depends on host configuration, credentials, user actions and selected flows. Some page definitions reference `jquerycookiebarpagemodule`, but this archive does not establish cookie categories, consent timing or exemption rules. The optional external iframe is triggered by the corresponding agent tool.
 
 ## 18. Known unknowns and deployment checklist
 
-Before production use, verify: the installed dependencies and their versions; authentication and authoritative authorization of each endpoint; data-flow recipients; model usage/training terms; provider retention; configured memory/log/vector stores and erasure behavior; backup scope; user notice and valid legal basis; terminal storage and cookie consent where applicable; accessibility including keyboard and screen reader behavior; and any applicable legal/contractual requirements. No live deployment, external provider or accessibility audit was available for this rename.
+Before production use, verify: the installed dependencies and their versions; authentication and authoritative authorization of each endpoint; data-flow recipients; model usage/training terms; provider retention; configured memory and logging stores and erasure behavior; backup scope; user notice and valid legal basis; terminal storage and cookie consent where applicable; accessibility including keyboard and screen reader behavior; and any applicable legal/contractual requirements. No live deployment, external provider or accessibility audit was available for this change.
 
 ## 19. Relevant code and tests
 
@@ -81,3 +81,4 @@ Main wiring: `src/Base3ChatWebsitePlugin.php`. Request handlers: `src/Chat/` and
 ## 20. Change history
 
 - 2026-11-02: Created source-backed inventory for the renamed module. No runtime privacy behavior, retention policy or provider bindings were redesigned as part of the module-identity change.
+- 2026-11-03: Removed obsolete EventTransport/SSE and unsupported legacy streaming demos, their pages and static flow data. The remaining synchronous chat and agent flows are unchanged; historical external provider or host-side data is not deleted by this source change.

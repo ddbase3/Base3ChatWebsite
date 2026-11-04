@@ -9,7 +9,6 @@
         "AssistantFoundation": "*",
         "Chatbot": "*",
         "DataHawk": "*",
-        "EventTransport": "*",
         "MissionBay": "*",
         "ResourceFoundation": "*"
     }
