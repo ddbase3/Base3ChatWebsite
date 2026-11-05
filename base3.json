@@ -10,6 +10,9 @@
         "Chatbot": "*",
         "DataHawk": "*",
         "MissionBay": "*",
-        "ResourceFoundation": "*"
+        "ResourceFoundation": "*",
+        "Base3Template": "*",
+        "ModuledPage": "*",
+        "KeyHarborClient": ">=1.0.0"
     }
 }

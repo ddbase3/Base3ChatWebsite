@@ -18,11 +18,13 @@ use Base3\Language\Api\ILanguage;
 use Base3\Language\MultiLang\MultiLang;
 use Base3\Microservice\Microservice\MicroserviceHelper;
 use Base3\LinkTarget\Api\ILinkTargetService;
-use Base3\Page\Api\IPage;
 use Base3\Settings\Api\ISettingsStore;
 use Base3\Settings\Database\DatabaseSettingsStore;
 use Base3\Token\Api\IToken;
-use Base3\Token\TokenProxy;
+use Base3\Api\IClassMap;
+use Base3Template\Authentication\XrmAuthentication;
+use Base3Template\Usermanager\XrmUsermanager;
+use KeyHarborClient\Microservice\KeyHarborConnector;
 use Base3\Usermanager\Api\IUsermanager;
 use Base3ChatWebsite\Content\Navigation;
 use Base3\Session\Api\ISession;
@@ -86,7 +88,7 @@ final class Base3ChatWebsitePluginFactoriesTest extends TestCase {
 		ServiceLocator::useInstance($locator);
 		try {
 			$session = $this->createStub(ISession::class);
-			$container = $this->container([ISession::class => $session]);
+			$container = $this->container([ISession::class => $session, 'xrmauthentication' => new XrmAuthentication(new TestXrmConnector())]);
 			$factories = ($definitions['authentications'][0])($container);
 			$names = [];
 			foreach ($factories as $factory) {
@@ -94,7 +96,7 @@ final class Base3ChatWebsitePluginFactoriesTest extends TestCase {
 				$this->assertInstanceOf(IAuthentication::class, $authentication);
 				$names[] = $authentication::getName();
 			}
-			$this->assertSame(['cliauth', 'singleauth', 'sessionauth', 'internalhmacauth'], $names);
+			$this->assertSame(['cliauth', 'sessionauth', 'xrmauthentication'], $names);
 			$accesscontrol = ($definitions['accesscontrol'][0])($this->container(['authentications' => $factories]));
 			$this->assertInstanceOf(SelectedAccesscontrol::class, $accesscontrol);
 			$this->assertSame('accesscontrol', $definitions[IAccesscontrol::class][0]);
@@ -104,28 +106,13 @@ final class Base3ChatWebsitePluginFactoriesTest extends TestCase {
 	}
 
 
-	public function testRemoteFactoriesDelegateToRegisteredAccountMicroservice(): void {
+	public function testIdentityServiceUsesOnlyExistingTemplateAndKeyHarborClient(): void {
 		$definitions = $this->definitions();
-		$page = $this->createStub(IPage::class);
-		$manager = $this->createStub(IUsermanager::class);
-		$token = $this->createStub(IToken::class);
-		$token->method('create')->willReturn('test-token');
-		$helper = new MicroserviceHelperSpy([
-			'loginpagemicroservice' => $page,
-			'usermanagermicroservice' => $manager,
-			'authtokenmicroservice' => $token
-		]);
-		$container = $this->container(['microservicehelper' => $helper]);
-		$this->assertSame($page, ($definitions['loginpage'][0])($container));
-		$this->assertSame($manager, ($definitions['usermanager'][0])($container));
-		$sso = ($definitions['ssotoken'][0])($container);
-		$this->assertInstanceOf(TokenProxy::class, $sso);
-		$this->assertSame('test-token', $sso->create('scope', 'account', 8, 30));
-		$this->assertSame([
-			['Account', IPage::class, 'loginpagemicroservice', false],
-			['Account', IUsermanager::class, 'usermanagermicroservice', false],
-			['Account', IToken::class, 'authtokenmicroservice', false]
-		], $helper->calls);
+		$this->assertArrayHasKey('xrmauthenticationconnector', $definitions);
+		$this->assertArrayHasKey('xrmusermanagerconnector', $definitions);
+		$this->assertArrayNotHasKey('ssotoken', $definitions);
+		$this->assertSame('xrmusermanager', $definitions[IUsermanager::class][0]);
+		$this->assertSame(IContainer::ALIAS, $definitions[IUsermanager::class][1]);
 	}
 
 	public function testSettingsStoreFactoryUsesTheConfiguredDatabaseWithoutConnectingExternally(): void {
@@ -186,4 +173,11 @@ final class Base3ChatWebsitePluginFactoriesTest extends TestCase {
 		$container->method('get')->willReturnCallback(static fn(string $name): mixed => $services[$name] ?? null);
 		return $container;
 	}
+}
+
+/** Offline connector fixture for Chat plugin factory checks. */
+final class TestXrmConnector implements \Base3\Microservice\Api\IMicroserviceConnector {
+	public function getMicroserviceUrl() { return 'https://xrm.example.test/test.json'; }
+	public function getProxiedInstance(): object { return $this; }
+	public function __call($name, $args) { return null; }
 }

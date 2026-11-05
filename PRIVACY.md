@@ -32,7 +32,7 @@ The plugin registers the existing authentication and access-control middleware a
 
 ## 8. Recipients and external connections
 
-`DemoServiceSync` calls the configured `openai` endpoint's `/chat/completions` API and sends prompts. The retained agent-flow configuration refers to an OpenAI chat model, session memory and a Telegram tool, subject to actual availability and invocation. `PhotoMosaicDemoAgentTool.php` can embed `https://mosaic-creator.de/mosaicgallery.php?embed`; when displayed, the browser connects to that website. An Account microservice is used for identity information; a Data microservice can be used for DataHawk. Actual operators, jurisdictions and subprocessors are deployment-dependent.
+`DemoServiceSync` calls the configured `openai` endpoint's `/chat/completions` API and sends prompts. The retained agent-flow configuration refers to an OpenAI chat model, session memory and a Telegram tool, subject to actual availability and invocation. `PhotoMosaicDemoAgentTool.php` can embed `https://mosaic-creator.de/mosaicgallery.php?embed`; when displayed, the browser connects to that website. Chat authenticates human login credentials against the configured XRM microservice via the shared Base3Template login form and KeyHarbor-protected HTTPS server-to-server calls, then reads native user identity, groups, roles and permission catalog metadata through an XRM usermanager microservice. Chat maintains its own session identifier and current verified XRM login. A Data microservice can be used for DataHawk. Actual operators, jurisdictions and subprocessors are deployment-dependent.
 
 ## 9. Credentials and configuration
 
@@ -82,3 +82,23 @@ Main wiring: `src/Base3ChatWebsitePlugin.php`. Request handlers: `src/Chat/` and
 
 - 2026-11-02: Created source-backed inventory for the renamed module. No runtime privacy behavior, retention policy or provider bindings were redesigned as part of the module-identity change.
 - 2026-11-03: Removed obsolete EventTransport/SSE and unsupported legacy streaming demos, their pages and static flow data. The remaining synchronous chat and agent flows are unchanged; historical external provider or host-side data is not deleted by this source change.
+
+## XRM identity integration (2026-11-05)
+
+The Login form processes submitted username/password and a session-bound CSRF
+value. Credentials are sent from Chat's server to XRM over TLS using the existing
+KeyHarbor-signed microservice transport. Chat does not store the password in its
+session or database. The session contains the XRM login identifier; XRM remains
+the authority for account data and membership metadata, which Chat reads on
+demand. The technical XRM token is read from deployment configuration and must
+be kept outside version control, access logs and public responses.
+
+Session lifetime and deletion follow the configured BASE3 session backend.
+XRM account revocation and active Chat session invalidation require deployment
+policy and operational verification; no live revocation guarantee is asserted.
+The host operator must assess network logs, recipients, retention, backups,
+accessibility and data-subject rights for the actual installations.
+
+The reusable `XrmIdentityClient` plugin owns the XRM login form, API calls, and
+remote usermanager adapter. `Base3ChatWebsite` only selects its services and
+retains the normal local BASE3 session; see `XrmIdentityClient/PRIVACY.md`.

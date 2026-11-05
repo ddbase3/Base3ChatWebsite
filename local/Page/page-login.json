@@ -1,0 +1,35 @@
+{
+	"pageheaders": [
+		{
+			"name": "titlepagemodule",
+			"data": {
+				"title": "BASE3 Chat"
+			}
+		}, {
+			"name": "metapagemodule",
+			"data": {
+				"robots": "noindex,nofollow"
+			}
+		}, {
+			"name": "multilangpagemodule"
+		}, {
+			"name": "assetloaderpagemodule"
+		}, {
+			"name": "base3pagemodule"
+		}
+	],
+	"pagecontents": [
+		{
+			"name": "pageheader"
+		}, {
+			"name": "pagecontent",
+			"data": {
+				"content": "<h3>Anmeldung</h3>"
+			}
+		}, {
+			"name": "loginblock"
+		}, {
+			"name": "pagefooter"
+		}
+	]
+}

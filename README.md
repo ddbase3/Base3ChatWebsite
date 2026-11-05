@@ -41,3 +41,43 @@ The module tests check the module identity, retained outputs, valid page/flow JS
 ## Privacy and accessibility
 
 See [PRIVACY.md](PRIVACY.md) for processing surfaces and deployment-specific unknowns. This is a demonstration plugin. Production deployment requires a separate verification of the host's authorization, provider retention, transfers, and the existing UI's accessibility.
+
+## Chat login and XRM user context
+
+Chat selects the reusable `XrmIdentityClient` on its own `login.php` against XRM through the existing
+`IAuthentication::login(?array $credentials)` contract and the installed
+`KeyHarborClient` transport. It retains the authenticated XRM login in Chat's normal
+`SessionAuth` session. There is no redirect, SSO login, local password database
+or dependency on the retired external `Account` microservice.
+
+The usermanager is selected from `XrmIdentityClient`, via the existing `UsermanagerProxy`, resolving
+native XRM identity, groups, roles and global permission *metadata* on XRM.
+Access decisions remain the responsibility of `IAuthorizationService` at the
+owning resource. Only exact `xrmauthenticationmicroservice.login` and
+`xrmusermanagermicroservice.getUserById` grants are needed on the Chat service
+credential. All other remote usermanager operations remain unavailable.
+
+Configure the existing BASE3 `IConfiguration` (never put real secrets in Git):
+
+```ini
+[xrm]
+url = "https://xrm.base3.de"
+token = "b3k_..."
+```
+
+After applying the site patch, run `php plugin/Base3ChatWebsite/scripts/rebuild_classmap.php` to register the new page module.
+
+The KeyHarbor token belongs to the trusted Chat server, not the browser. No
+additional local KeyHarbor server plugin, session mirror, or registration is
+introduced. XRM must have the matching usermanager microservice installed and
+the exact KeyHarbor operation grant enabled before accepting Chat logins.
+
+## Shared identity implementation
+
+The XRM login form and its reusable remote authentication and usermanager
+adapters are owned by the existing `Base3Template` plugin. The Chat project
+selects these services and builds two `KeyHarborClient` connectors. No
+Chat-specific implementation or new plugin duplicates their logic. The
+`login.php` page uses the existing `loginblock` module, and the local
+`SessionAuth` maintains the verified XRM login. Only the existing `[xrm]`
+`url` and `token` configuration values are read.

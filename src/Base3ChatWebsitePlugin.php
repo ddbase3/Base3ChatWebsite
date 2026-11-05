@@ -3,6 +3,7 @@
 namespace Base3ChatWebsite;
 
 use Base3\Api\IAssetResolver;
+use Base3\Api\IClassMap;
 use Base3\Api\IContainer;
 use Base3\Api\IMvcView;
 use Base3\Api\IPlugin;
@@ -19,7 +20,6 @@ use Base3\Logger\Api\ILogger;
 use Base3\Logger\LoggerProxy;
 use Base3\Microservice\Api\IMicroserviceFlags;
 use Base3\Microservice\Microservice\MicroserviceHelper;
-use Base3\Microservice\Extern\MicroserviceExternHelper;
 use Base3\Middleware\Session\SessionMiddleware;
 use Base3\Middleware\Accesscontrol\AccesscontrolMiddleware;
 use Base3\Page\Api\IPage;
@@ -29,9 +29,13 @@ use Base3\Session\BasicSession\BasicSession;
 use Base3\Settings\Api\ISettingsStore;
 use Base3\Settings\Database\DatabaseSettingsStore;
 use Base3\Token\Api\IToken;
-use Base3\Token\TokenProxy;
 use Base3\Token\FileToken\FileToken;
 use Base3\Usermanager\Api\IUsermanager;
+use Base3\Accesscontrol\Api\IAuthentication;
+use Base3Template\Authentication\XrmAuthentication;
+use Base3Template\Usermanager\XrmUsermanager;
+use KeyHarborClient\Microservice\KeyHarborConnector;
+use Base3Tools\Status\File\FileStatusHandler;
 use Base3ChatWebsite\Content\Navigation;
 use ResourceFoundation\Api\IQueryService;
 use DataHawk\Service\DataHawkMicroservice;
@@ -82,26 +86,37 @@ class Base3ChatWebsitePlugin implements IPlugin {
 			->set(IDatabase::class, fn($c) => new MysqlDatabase($c->get(IConfiguration::class)), IContainer::SHARED | IContainer::NOOVERWRITE)
 			->set('database', IDatabase::class, IContainer::ALIAS)
 
-                        ->set('loginpage', fn($c) => $c->get('microservicehelper')->get('Account', IPage::class, 'loginpagemicroservice'), IContainer::SHARED)
+                        ->set('loginpage', fn($c) => new \Base3Template\Page\Login(
+				$c->get(IClassMap::class), $c->get(IMvcView::class), $c->get(ILanguage::class)
+			), IContainer::SHARED)
 
                         ->set('authtoken', fn() => new FileToken)
                         ->set(IToken::class, 'authtoken', IContainer::ALIAS)
-                        ->set('ssotoken', fn($c) => new TokenProxy($c->get('microservicehelper')->get('Account', IToken::class, 'authtokenmicroservice')), IContainer::SHARED)
+
+                        ->set('xrmauthenticationconnector', fn($c) => new KeyHarborConnector(
+                                rtrim($c->get(IConfiguration::class)->getString('xrm', 'url'), '/') . '/xrmauthenticationmicroservice.json',
+                                IAuthentication::class,
+                                $c->get(IConfiguration::class), 'xrm', 'token', ['login' => '?string']
+                        ), IContainer::SHARED)
+                        ->set('xrmusermanagerconnector', fn($c) => new KeyHarborConnector(
+                                rtrim($c->get(IConfiguration::class)->getString('xrm', 'url'), '/') . '/xrmusermanagermicroservice.json',
+                                IUsermanager::class,
+                                $c->get(IConfiguration::class), 'xrm', 'token', ['getUserById' => '?array']
+                        ), IContainer::SHARED)
+                        ->set('xrmauthentication', fn($c) => new XrmAuthentication($c->get('xrmauthenticationconnector')), IContainer::SHARED)
+                        ->set('xrmusermanager', fn($c) => new XrmUsermanager($c->get('xrmusermanagerconnector'), $c->get(IAccesscontrol::class)), IContainer::SHARED)
 
                         ->set('authentications', fn($c) => [
                                 fn() => new \Base3\Accesscontrol\Authentication\CliAuth,
-                                fn() => new \Base3\Accesscontrol\Authentication\SingleAuth,
                                 fn() => new \Base3\Accesscontrol\Authentication\SessionAuth($c->get(ISession::class)),
-                                fn() => new \Base3\Accesscontrol\Authentication\InternalHmacAuth,
-                                // fn() => new \Base3\Accesscontrol\Authentication\SingleSignOnAuth($c->get('ssotoken')),
-                                // fn() => new \Base3\Accesscontrol\Authentication\SingleSignOnAutoAuth($c->get(IConfiguration::class), $c->get(ISession::class), $c),
-                                // fn() => new \Base3\Accesscontrol\Authentication\ContinueAuth
+                                fn() => $c->get('xrmauthentication')
                         ])
 
                         ->set('accesscontrol', fn($c) => new SelectedAccesscontrol($c->get('authentications')), IContainer::SHARED)
                         ->set(IAccesscontrol::class, 'accesscontrol', IContainer::ALIAS)
 
-                        ->set('usermanager', fn($c) => $c->get('microservicehelper')->get('Account', IUsermanager::class, 'usermanagermicroservice'), IContainer::SHARED)
+                        ->set(IUsermanager::class, 'xrmusermanager', IContainer::ALIAS)
+                        ->set('usermanager', IUsermanager::class, IContainer::ALIAS)
 
                         ->set(IAssetResolver::class, fn() => new BaseAssetResolver, IContainer::SHARED)
 
@@ -113,7 +128,15 @@ class Base3ChatWebsitePlugin implements IPlugin {
 					$c->get('microserviceserializedhelper')->get('Data', IQueryService::class, 'datahawkmicroservice')),
 				IContainer::SHARED)
 
-                        ->set('navigation', fn($c) => new Navigation($c->get(IMvcView::class), $c->get(IAccesscontrol::class), $c->get(ILinkTargetService::class)), IContainer::SHARED)
+                        ->set('statushandler', fn($c) => new FileStatusHandler($c->get(IAccesscontrol::class)), IContainer::SHARED)
+
+			->set('navigation', fn($c) => new Navigation(
+				$c->get(IMvcView::class),
+				$c->get(IAccesscontrol::class),
+				$c->get(IUsermanager::class),
+				$c->get(ILinkTargetService::class)
+			), IContainer::SHARED)
+
                         ->set('logo', 'plugin/Base3ChatWebsite/assets/logo/logo.svg', IContainer::PARAMETER);
 	}
 }

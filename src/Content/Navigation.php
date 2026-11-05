@@ -6,20 +6,22 @@ use Base3\Api\IMvcView;
 use Base3\Api\IOutput;
 use Base3\Core\ServiceLocator;
 use Base3\Accesscontrol\Api\IAccesscontrol;
+use Base3\Usermanager\Api\IUsermanager;
 use Base3\LinkTarget\Api\ILinkTargetService;
 
 class Navigation implements IOutput {
 
-        protected $servicelocator;
-        private $usermanager;
+        // protected $servicelocator;
+        // private $usermanager;
 
         public function __construct(
                 private readonly IMvcView $view,
 		private readonly IAccesscontrol $accesscontrol,
+		private readonly IUsermanager $usermanager,
 		private readonly ILinkTargetService $linktargetservice
         ) {
-                $this->servicelocator = ServiceLocator::getInstance();
-                $this->usermanager = $this->servicelocator->get('usermanager');
+                // $this->servicelocator = ServiceLocator::getInstance();
+                // $this->usermanager = $this->servicelocator->get('usermanager');
         }
 
         // Implementation of IBase
