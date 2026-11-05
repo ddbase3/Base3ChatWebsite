@@ -69,7 +69,7 @@ final class Base3ChatWebsitePluginTest extends TestCase {
 		$definitions = $this->registerServices();
 		$container = $this->createStub(IContainer::class);
 		$authentications = ($definitions['authentications'][0])($container);
-		$this->assertCount(5, $authentications);
+		$this->assertCount(4, $authentications);
 		foreach ($authentications as $factory) {
 			$this->assertInstanceOf(\Closure::class, $factory);
 		}

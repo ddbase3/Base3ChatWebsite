@@ -94,7 +94,7 @@ final class Base3ChatWebsitePluginFactoriesTest extends TestCase {
 				$this->assertInstanceOf(IAuthentication::class, $authentication);
 				$names[] = $authentication::getName();
 			}
-			$this->assertSame(['cliauth', 'singleauth', 'sessionauth', 'internalhmacauth', 'continueauth'], $names);
+			$this->assertSame(['cliauth', 'singleauth', 'sessionauth', 'internalhmacauth'], $names);
 			$accesscontrol = ($definitions['accesscontrol'][0])($this->container(['authentications' => $factories]));
 			$this->assertInstanceOf(SelectedAccesscontrol::class, $accesscontrol);
 			$this->assertSame('accesscontrol', $definitions[IAccesscontrol::class][0]);

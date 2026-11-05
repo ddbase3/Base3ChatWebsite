@@ -1,0 +1,47 @@
+{
+	"pageheaders": [
+		{
+			"name": "titlepagemodule",
+			"data": {
+				"title": "BASE3 XRM"
+			}
+		},
+		{
+			"name": "metapagemodule",
+			"data": {
+				"robots": "noindex,nofollow"
+			}
+		},
+		{
+			"name": "multilangpagemodule"
+		},
+		{
+			"name": "jqueryuipagemodule"
+		},
+		{
+			"name": "assetloaderpagemodule"
+		},
+		{
+			"name": "jquerycookiebarpagemodule"
+		},
+		{
+			"name": "base3pagemodule"
+		}
+	],
+	"pagecontents": [
+		{
+			"name": "pageheader"
+		},
+		{
+			"name": "displaypagemodule",
+			"data": {
+				"display": "settingsdisplay",
+				"width": "full",
+				"data": {}
+			}
+		},
+		{
+			"name": "pagefooter"
+		}
+	]
+}

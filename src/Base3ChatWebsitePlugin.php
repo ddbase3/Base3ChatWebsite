@@ -95,7 +95,7 @@ class Base3ChatWebsitePlugin implements IPlugin {
                                 fn() => new \Base3\Accesscontrol\Authentication\InternalHmacAuth,
                                 // fn() => new \Base3\Accesscontrol\Authentication\SingleSignOnAuth($c->get('ssotoken')),
                                 // fn() => new \Base3\Accesscontrol\Authentication\SingleSignOnAutoAuth($c->get(IConfiguration::class), $c->get(ISession::class), $c),
-                                fn() => new \Base3\Accesscontrol\Authentication\ContinueAuth
+                                // fn() => new \Base3\Accesscontrol\Authentication\ContinueAuth
                         ])
 
                         ->set('accesscontrol', fn($c) => new SelectedAccesscontrol($c->get('authentications')), IContainer::SHARED)
