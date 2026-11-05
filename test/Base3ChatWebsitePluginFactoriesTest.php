@@ -17,6 +17,7 @@ use Base3\Database\Mysql\MysqlDatabase;
 use Base3\Language\Api\ILanguage;
 use Base3\Language\MultiLang\MultiLang;
 use Base3\Microservice\Microservice\MicroserviceHelper;
+use Base3\Microservice\Api\IMicroserviceConnector;
 use Base3\LinkTarget\Api\ILinkTargetService;
 use Base3\Settings\Api\ISettingsStore;
 use Base3\Settings\Database\DatabaseSettingsStore;
@@ -24,7 +25,6 @@ use Base3\Token\Api\IToken;
 use Base3\Api\IClassMap;
 use Base3Template\Authentication\XrmAuthentication;
 use Base3Template\Usermanager\XrmUsermanager;
-use KeyHarborClient\Microservice\KeyHarborConnector;
 use Base3\Usermanager\Api\IUsermanager;
 use Base3ChatWebsite\Content\Navigation;
 use Base3\Session\Api\ISession;
@@ -88,7 +88,7 @@ final class Base3ChatWebsitePluginFactoriesTest extends TestCase {
 		ServiceLocator::useInstance($locator);
 		try {
 			$session = $this->createStub(ISession::class);
-			$container = $this->container([ISession::class => $session, 'xrmauthentication' => new XrmAuthentication(new TestXrmConnector())]);
+			$container = $this->container([ISession::class => $session, 'xrmauthentication' => new XrmAuthentication($this->createStub(IMicroserviceConnector::class))]);
 			$factories = ($definitions['authentications'][0])($container);
 			$names = [];
 			foreach ($factories as $factory) {
@@ -134,27 +134,20 @@ final class Base3ChatWebsitePluginFactoriesTest extends TestCase {
 
 	public function testNavigationFactoryUsesConfiguredViewAndServices(): void {
 		$definitions = $this->definitions();
-		$original = ServiceLocator::getInstance();
-		$locator = new ServiceLocator();
-		$manager = $this->createStub(IUsermanager::class);
-		$manager->method('getUser')->willReturn(null);
-		$locator->set('usermanager', $manager, IContainer::SHARED);
-		ServiceLocator::useInstance($locator);
-		try {
-			$view = $this->createStub(IMvcView::class);
-			$view->method('loadTemplate')->willReturn('navigation');
-			$accesscontrol = $this->createStub(IAccesscontrol::class);
-			$links = $this->createStub(ILinkTargetService::class);
-			$navigation = ($definitions['navigation'][0])($this->container([
-				IMvcView::class => $view,
-				IAccesscontrol::class => $accesscontrol,
-				ILinkTargetService::class => $links
-			]));
-			$this->assertInstanceOf(Navigation::class, $navigation);
-			$this->assertSame('navigation', $navigation->getOutput());
-		} finally {
-			ServiceLocator::useInstance($original);
-		}
+		$view = $this->createStub(IMvcView::class);
+		$view->method('loadTemplate')->willReturn('navigation');
+		$accesscontrol = $this->createStub(IAccesscontrol::class);
+		$usermanager = $this->createStub(IUsermanager::class);
+		$usermanager->method('getUser')->willReturn(null);
+		$links = $this->createStub(ILinkTargetService::class);
+		$navigation = ($definitions['navigation'][0])($this->container([
+			IMvcView::class => $view,
+			IAccesscontrol::class => $accesscontrol,
+			IUsermanager::class => $usermanager,
+			ILinkTargetService::class => $links
+		]));
+		$this->assertInstanceOf(Navigation::class, $navigation);
+		$this->assertSame('navigation', $navigation->getOutput());
 	}
 
 	private function definitions(): array {
@@ -173,11 +166,4 @@ final class Base3ChatWebsitePluginFactoriesTest extends TestCase {
 		$container->method('get')->willReturnCallback(static fn(string $name): mixed => $services[$name] ?? null);
 		return $container;
 	}
-}
-
-/** Offline connector fixture for Chat plugin factory checks. */
-final class TestXrmConnector implements \Base3\Microservice\Api\IMicroserviceConnector {
-	public function getMicroserviceUrl() { return 'https://xrm.example.test/test.json'; }
-	public function getProxiedInstance(): object { return $this; }
-	public function __call($name, $args) { return null; }
 }

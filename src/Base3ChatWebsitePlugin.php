@@ -130,13 +130,7 @@ class Base3ChatWebsitePlugin implements IPlugin {
 
                         ->set('statushandler', fn($c) => new FileStatusHandler($c->get(IAccesscontrol::class)), IContainer::SHARED)
 
-			->set('navigation', fn($c) => new Navigation(
-				$c->get(IMvcView::class),
-				$c->get(IAccesscontrol::class),
-				$c->get(IUsermanager::class),
-				$c->get(ILinkTargetService::class)
-			), IContainer::SHARED)
-
+                        ->set('navigation', fn($c) => new Navigation($c->get(IMvcView::class), $c->get(IAccesscontrol::class), $c->get(IUsermanager::class), $c->get(ILinkTargetService::class)), IContainer::SHARED)
                         ->set('logo', 'plugin/Base3ChatWebsite/assets/logo/logo.svg', IContainer::PARAMETER);
 	}
 }
