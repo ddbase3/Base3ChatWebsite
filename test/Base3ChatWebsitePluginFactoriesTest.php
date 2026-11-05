@@ -2,6 +2,12 @@
 
 namespace Base3ChatWebsite\Test;
 
+use Base3\Authorization\Api\IAuthorizationService;
+use Base3\Authorization\Dto\AuthorizationRequest;
+use Base3\Usermanager\Permission;
+use Base3\Usermanager\UserCriterionEvaluator;
+use Base3Template\Authorization\AudienceCatalog;
+use Base3Template\Authorization\FeatureAuthorizationService;
 use Base3\Accesscontrol\Api\IAccesscontrol;
 use Base3\Accesscontrol\Api\IAuthentication;
 use Base3\Accesscontrol\Selected\SelectedAccesscontrol;
@@ -113,6 +119,22 @@ final class Base3ChatWebsitePluginFactoriesTest extends TestCase {
 		$this->assertArrayNotHasKey('ssotoken', $definitions);
 		$this->assertSame('xrmusermanager', $definitions[IUsermanager::class][0]);
 		$this->assertSame(IContainer::ALIAS, $definitions[IUsermanager::class][1]);
+	}
+
+	public function testSettingsAuthorizationUsesSharedTemplateAndXrmGrantMetadata(): void {
+		$definitions = $this->definitions();
+		$this->assertArrayHasKey(IAuthorizationService::class, $definitions);
+		$users = $this->createStub(IUsermanager::class);
+		$users->method('getPermissions')->willReturn([]);
+		$evaluator = new UserCriterionEvaluator($this->createStub(IClassMap::class));
+		$catalog = new AudienceCatalog($this->createStub(ISettingsStore::class), $this->createStub(IClassMap::class), $evaluator);
+		$service = ($definitions[IAuthorizationService::class][0])($this->container([
+			IUsermanager::class => $users,
+			AudienceCatalog::class => $catalog,
+			UserCriterionEvaluator::class => $evaluator
+		]));
+		$this->assertInstanceOf(FeatureAuthorizationService::class, $service);
+		$this->assertFalse($service->decide(new AuthorizationRequest('base3', Permission::for('system', 'admin')))->isAllowed());
 	}
 
 	public function testSettingsStoreFactoryUsesTheConfiguredDatabaseWithoutConnectingExternally(): void {

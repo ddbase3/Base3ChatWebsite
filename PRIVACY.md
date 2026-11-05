@@ -102,3 +102,17 @@ accessibility and data-subject rights for the actual installations.
 The reusable `XrmIdentityClient` plugin owns the XRM login form, API calls, and
 remote usermanager adapter. `Base3ChatWebsite` only selects its services and
 retains the normal local BASE3 session; see `XrmIdentityClient/PRIVACY.md`.
+
+## Shared local audience administration (2026-11-05)
+
+Feature and group audience selections on Chat are stored in the existing
+site-local settings database in the `base3template` settings group. The shared
+Base3Template service evaluates the trusted XRM user identity and roles through
+the framework's criterion evaluator. Native permission metadata continues to
+come from XRM, and the existing framework `Base3SystemAuthorizationService`
+decides native `system/admin` for every admin action. The optional KeyHarbor
+grant for user search and role catalog may transfer minimal account identity
+and native role metadata from XRM to Chat, with encrypted transport and
+server-side credentials. There are no copied passwords, shadow roles, or
+additional credential stores. Site operators must verify local settings
+retention, database backups, access and reverse-proxy logs, and deletion paths.

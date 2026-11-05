@@ -11,7 +11,7 @@
         "DataHawk": "*",
         "MissionBay": "*",
         "ResourceFoundation": "*",
-        "Base3Template": "*",
+        "Base3Template": ">=1.1.0",
         "ModuledPage": "*",
         "KeyHarborClient": ">=1.0.0"
     }

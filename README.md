@@ -44,18 +44,18 @@ See [PRIVACY.md](PRIVACY.md) for processing surfaces and deployment-specific unk
 
 ## Chat login and XRM user context
 
-Chat selects the reusable `XrmIdentityClient` on its own `login.php` against XRM through the existing
+Chat selects the reusable `Base3Template` identity adapters on its own `login.php` against XRM through the existing
 `IAuthentication::login(?array $credentials)` contract and the installed
 `KeyHarborClient` transport. It retains the authenticated XRM login in Chat's normal
 `SessionAuth` session. There is no redirect, SSO login, local password database
 or dependency on the retired external `Account` microservice.
 
-The usermanager is selected from `XrmIdentityClient`, via the existing `UsermanagerProxy`, resolving
+The usermanager is selected from `Base3Template`, via the existing `UsermanagerProxy`, resolving
 native XRM identity, groups, roles and global permission *metadata* on XRM.
 Access decisions remain the responsibility of `IAuthorizationService` at the
-owning resource. Only exact `xrmauthenticationmicroservice.login` and
-`xrmusermanagermicroservice.getUserById` grants are needed on the Chat service
-credential. All other remote usermanager operations remain unavailable.
+owning resource. Login and basic user context require only `xrmauthenticationmicroservice.login` and
+`xrmusermanagermicroservice.getUserById`. Audience administration also uses
+separately granted `searchUsers`/`getAllRoles` reads as described below.
 
 Configure the existing BASE3 `IConfiguration` (never put real secrets in Git):
 
@@ -81,3 +81,26 @@ Chat-specific implementation or new plugin duplicates their logic. The
 `login.php` page uses the existing `loginblock` module, and the local
 `SessionAuth` maintains the verified XRM login. Only the existing `[xrm]`
 `url` and `token` configuration values are read.
+
+## Host-local authorization using shared template audiences (2026-11-05)
+
+Chat selects `Base3Template\Authorization\FeatureAuthorizationService` in
+its project DI and delegates non-feature permissions to the existing
+`Base3SystemAuthorizationService`, using effective roles and permission metadata
+read from XRM through `XrmUsermanager`. The source of identity and native
+grants remains XRM; Chat does not introduce its own RBAC database, alternative
+credential checker, or feature policy language. The default
+`Base3Template\Authorization\AudienceCatalog` stores Chat feature/group
+overrides under the local database's `base3template` settings group; XRM's
+settings remain independent.
+
+The shared `development` group matches exact trusted XRM login `dd`; it makes
+the feature settings tab visible even when no features have been configured.
+Editing is still limited to identities whose native XRM roles supply
+`system/admin`. Neither a technical KeyHarbor credential nor `development`
+alone grants that permission. To enable the current Groups/Features editor's
+native role suggestions and user search, grant the existing Chat KeyHarbor
+credential two **additional** XRM usermanager operations:
+`xrmusermanagermicroservice.getAllRoles` and
+`xrmusermanagermicroservice.searchUsers`. Read-only feature evaluation and
+login continue to use the previously granted `getUserById`/`login` operations.

@@ -30,6 +30,12 @@ use Base3\Settings\Api\ISettingsStore;
 use Base3\Settings\Database\DatabaseSettingsStore;
 use Base3\Token\Api\IToken;
 use Base3\Token\FileToken\FileToken;
+use Base3\Authorization\Api\IAuthorizationService;
+use Base3\Authorization\Base3System\Base3SystemAuthorizationService;
+use Base3\Usermanager\UserCriterionEvaluator;
+use Base3Template\Authorization\AudienceCatalog;
+use Base3Template\Authorization\AudienceEditor;
+use Base3Template\Authorization\FeatureAuthorizationService;
 use Base3\Usermanager\Api\IUsermanager;
 use Base3\Accesscontrol\Api\IAuthentication;
 use Base3Template\Authentication\XrmAuthentication;
@@ -101,7 +107,7 @@ class Base3ChatWebsitePlugin implements IPlugin {
                         ->set('xrmusermanagerconnector', fn($c) => new KeyHarborConnector(
                                 rtrim($c->get(IConfiguration::class)->getString('xrm', 'url'), '/') . '/xrmusermanagermicroservice.json',
                                 IUsermanager::class,
-                                $c->get(IConfiguration::class), 'xrm', 'token', ['getUserById' => '?array']
+                                $c->get(IConfiguration::class), 'xrm', 'token', ['getUserById' => '?array', 'searchUsers' => 'list', 'getAllRoles' => 'list']
                         ), IContainer::SHARED)
                         ->set('xrmauthentication', fn($c) => new XrmAuthentication($c->get('xrmauthenticationconnector')), IContainer::SHARED)
                         ->set('xrmusermanager', fn($c) => new XrmUsermanager($c->get('xrmusermanagerconnector'), $c->get(IAccesscontrol::class)), IContainer::SHARED)
@@ -117,6 +123,18 @@ class Base3ChatWebsitePlugin implements IPlugin {
 
                         ->set(IUsermanager::class, 'xrmusermanager', IContainer::ALIAS)
                         ->set('usermanager', IUsermanager::class, IContainer::ALIAS)
+                        // XRM remains the identity and native grant owner. The shared
+                        // feature evaluator reads this site's own declared audiences.
+                        ->set(AudienceEditor::class, fn($c) => new AudienceEditor(
+                                $c->get(IClassMap::class), $c->get(UserCriterionEvaluator::class),
+                                $c->get(IUsermanager::class), 'xrmrolecriterion'
+                        ), IContainer::SHARED)
+                        ->set(IAuthorizationService::class, fn($c) => new FeatureAuthorizationService(
+                                new Base3SystemAuthorizationService($c->get(IUsermanager::class)),
+                                $c->get(AudienceCatalog::class), $c->get(UserCriterionEvaluator::class),
+                                $c->get(IUsermanager::class)
+                        ), IContainer::SHARED)
+
 
                         ->set(IAssetResolver::class, fn() => new BaseAssetResolver, IContainer::SHARED)
 
