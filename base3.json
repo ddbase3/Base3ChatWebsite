@@ -13,6 +13,8 @@
         "ResourceFoundation": "*",
         "Base3Template": ">=1.1.0",
         "ModuledPage": "*",
-        "KeyHarborClient": ">=1.0.0"
+        "KeyHarborClient": ">=1.0.0",
+        "ClientStack": ">=4.23.0",
+        "FileBridge": ">=1.0.0"
     }
 }

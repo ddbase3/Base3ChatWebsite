@@ -3,6 +3,9 @@
 namespace Base3ChatWebsite\Test;
 
 use Base3\Api\IAssetResolver;
+use Base3\LinkTarget\Api\ILinkTargetService;
+use Base3ChatWebsite\Chat\GlobalChatbotRenderOutput;
+use ClientStack\FileManager\FileManagerHttpService;
 use Base3\Api\IContainer;
 use Base3\Configuration\Api\IConfiguration;
 use Base3\Database\Api\IDatabase;
@@ -73,6 +76,26 @@ final class Base3ChatWebsitePluginTest extends TestCase {
 		foreach ($authentications as $factory) {
 			$this->assertInstanceOf(\Closure::class, $factory);
 		}
+	}
+
+	public function testGlobalLauncherAndFileManagerUseOneProjectOwnedChatbotIdentity(): void {
+		$definitions = $this->registerServices();
+		self::assertSame(GlobalChatbotRenderOutput::getName(), $definitions['globalChatbotOutputName'][0]);
+		self::assertSame('chatbot', $definitions['globalChatbotConfigGroup'][0]);
+		self::assertSame('default', $definitions['globalChatbotConfigName'][0]);
+		foreach (['globalChatbotOutputName', 'globalChatbotConfigGroup', 'globalChatbotConfigName'] as $name) {
+			self::assertSame(IContainer::PARAMETER, $definitions[$name][1]);
+		}
+		$links = $this->createStub(ILinkTargetService::class);
+		$links->method('getLink')->willReturn('/chatbotfilemanageroutput.html?fm_group=chatbot&fm_name=default');
+		$container = $this->createStub(IContainer::class);
+		$container->method('get')->willReturnCallback(static fn(string $service) => $service === ILinkTargetService::class ? $links : null);
+		$data = ($definitions['chatbotConfigDisplayData'][0])($container);
+		self::assertSame(['group' => 'chatbot', 'name' => 'default'], array_intersect_key($data, ['group' => 1, 'name' => 1]));
+		self::assertTrue($data['resources']['enabled']);
+		self::assertSame(FileManagerHttpService::DEFAULT_MAX_FILE_SIZE, $data['resources']['max_file_size']);
+		self::assertStringContainsString('fm_action=uploadStart', $data['resources']['endpoints']['uploadStart']);
+		self::assertStringContainsString('fm_action=download', $data['resources']['endpoints']['download']);
 	}
 
 	private function registerServices(): array {

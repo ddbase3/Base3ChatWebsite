@@ -116,3 +116,30 @@ and native role metadata from XRM to Chat, with encrypted transport and
 server-side credentials. There are no copied passwords, shadow roles, or
 additional credential stores. Site operators must verify local settings
 retention, database backups, access and reverse-proxy logs, and deletion paths.
+
+## Local FileManager integration (2026-11-05)
+
+The project now wires `FileBridge\Local\LocalManagedFileStorageService` beneath the BASE3 `[directories] data`/`filemanager/` directory. File bytes for `chatbot/default` are stored in an isolated hashed owner directory. Chunk upload sessions under the configured data directory at `filemanager/uploads/` contain upload metadata including actor identity, owner, file path/name/size and received file bytes. No additional remote recipient is introduced by this local storage path. The existing XRM host identity and BASE3 authorization services decide who may use the endpoint; the endpoint requires both the chatbot configuration feature and native `system/admin`, and forbids requesting other owners.
+
+The old `userfiles` test directory is not accessed or migrated by this storage configuration and must be removed separately by the operator. The BASE3 `[directories] data` configuration determines the location independently of the web-server document root. No project-level `data/.htaccess` is added. FileBridge retains the existing protection for its own managed-storage root; deployment must prevent direct public access to the storage paths. The HTTP FileManager endpoint can list, read, create, replace, copy, move and delete files or folders. These operations affect user-provided content, potentially including personal information. Aborted and completed sessions remove their working files; incomplete/abandoned sessions currently lack automatic age-based cleanup. The operator must supply storage retention, backup and secure deletion policy, and deny direct HTTP access to the storage root. A generated Apache `.htaccess` is defense in depth and does not replace native web-server access restrictions. Actual HTTP authentication, access-control, CSRF and browser accessibility verification remain deployment acceptance checks.
+
+
+## Global chatbot and resource settings integration (2026-11-05)
+
+On full website pages, `PageHeader` now includes the shared global launcher
+only when `feature/globalchatbotlauncherfeature` is explicitly allowed.
+Opening the launcher sends a same-origin AJAX GET to
+`globalchatbotrenderoutput`, which independently checks that feature and
+renders the single saved `chatbot/default` instance. The launcher may use
+existing local/session browser storage to retain window mode and reopened
+state as documented by ClientStack. Other chatbot placements remain
+independent.
+
+The automatic Chatbot Configuration tab now exposes the FileManager for
+`chatbot/default`. Uploaded bytes and resumable chunks stay in the Phase 1
+`[directories] data`/`filemanager` subtree through FileBridge, and the existing
+`ChatbotFileManagerOutput` requires native `system/admin` and the chatbot
+configuration feature. There is no new external file recipient, additional
+persistence layer, or client-selected storage owner. Host controls and
+operator retention, rights and backup responsibilities remain as documented
+under the Phase 1 integration.

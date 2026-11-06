@@ -104,3 +104,55 @@ credential two **additional** XRM usermanager operations:
 `xrmusermanagermicroservice.getAllRoles` and
 `xrmusermanagermicroservice.searchUsers`. Read-only feature evaluation and
 login continue to use the previously granted `getUserById`/`login` operations.
+
+## Phase 1: Shared FileManager using FileBridge (2026-11-05)
+
+The project provides `IManagedFileStorageService` via `FileBridge\Local\LocalManagedFileStorageService`, using the existing absolute path from `[directories] data` with `/filemanager` appended as the private root. `FileUploadService` stores resumable chunks under `[directories] data` with `/filemanager/uploads` appended. The single owner currently exposed by the project is `chatbot/default` (collection mode). `Base3ChatWebsite\FileManager\ChatbotFileManagerOutput` independently requires the selected host authority to allow both `feature/chatbotconfigsettingstab` and `system/admin`. It also requires an authenticated user and the AJAX header for POST actions. The FileManager browser adapter receives endpoint URLs through `ChatbotFileManagerOutput::buildEndpoints($linkTargetService)`.
+
+This establishes the shared FileManager backend and authorized endpoint for the next phase, which will wire the resources section of the Chatbot Settings tab to these endpoints. The old demo settings do not need migration. No changes to the framework's debug configuration are part of this phase.
+
+All files and chunks are below `<configured directories.data>/filemanager`. No `data/.htaccess` is added by the project. FileBridge retains its existing managed-storage root `.htaccess` behavior. The `data` path comes from the existing BASE3 `[directories] data` configuration and must not be directly served by HTTP. The deployment MUST ensure that the stored files cannot be fetched directly via HTTP. Apache `.htaccess` does not protect deployments that ignore it, including Nginx. The PHP process needs write access to the configured `[directories] data` directory and its `filemanager/` children (`owners` and `uploads`). `unzip -o` does not provision the configured data directory. Existing test uploads in `userfiles/` are intentionally not migrated or read by this configuration; the operator removes them separately. Verify downloads, uploads and permissions on the deployed web server before enabling this feature publicly.
+
+
+The application root (`DIR_ROOT`) is not used to locate the FileManager data. The existing `cnf/config.ini` entry `[directories] data` must name the private data directory as an absolute path visible to the PHP process. For deployments with a separate PHP container, this must be the **path inside that container**, not merely the host filesystem path. Missing or relative values fail explicitly; there is no compatibility fallback to `html/data` or `userfiles`.
+
+The preceding patch contained a placeholder `data/.gitignore` under `DIR_ROOT`. To remove this obsolete placeholder only when its exact generated contents are present, run `sh plugin/Base3ChatWebsite/scripts/remove-obsolete-webroot-data-placeholder.sh` from the BASE3 application root after installation. It never removes stored files or a nonempty directory.
+
+Run `php plugin/Base3ChatWebsite/test/StorageDataDirectorySmoke.php`. The test creates sibling `html/` and `data/` temporary directories, configures `[directories] data`, verifies FileBridge and ClientStack paths, and removes the temporary files. In the deployed site, the configured data directory must already exist and be reachable from the PHP runtime, including container mounts.
+
+
+## Phase 2: Global chat and resources on all full website pages (2026-11-05)
+
+`Base3ChatWebsitePlugin` registers the existing `PageHeader` opt-in parameters:
+`globalChatbotOutputName=globalchatbotrenderoutput`,
+`globalChatbotConfigGroup=chatbot` and `globalChatbotConfigName=default`.
+The shared Base3Template `pageheader` inserts ClientStack's global launcher
+on all normal full-page templates. The existing `embed` setting suppresses
+the header and launcher. No old demo chatbot JSON or page file is migrated.
+
+`Base3ChatWebsite\Chat\GlobalChatbotRenderOutput` responds only to an AJAX
+GET and requires an explicit allow for
+`feature/globalchatbotlauncherfeature`. It renders the existing
+`Chatbot\Content\ChatbotDisplay` with the server-owned `chatbot/default`
+identity; it never trusts identity values from the browser. It does not change
+authorization of other chatbot placements or conversation endpoints.
+
+The project composes `chatbotConfigDisplayData` into the existing
+`ChatbotconfigSettingsTab`: it contains the same `chatbot/default` identity
+and the `ChatbotFileManagerOutput::buildEndpoints()` URLs. The Configuration
+subtab therefore shows the FileManager resources UI, using the Phase 1 local
+FileBridge storage under `data/filemanager/`. Launcher and Extensions
+tabs remain contributed by their respective plugins through automatic
+`ISettingsTab` classmap discovery. No static tab list or additional router
+is introduced.
+
+After unpacking this patch run the existing classmap rebuilding command:
+
+```sh
+php plugin/Base3ChatWebsite/scripts/rebuild_classmap.php
+```
+
+Verify `index`, `settings`, `login`, `chatagent`, `chatsync`, and `mermaid`
+using the deployed browser and access-control service. Browser, active
+providers and the live database were not available for local tests. The
+HTTP server must keep denying direct access to `data/filemanager/`.

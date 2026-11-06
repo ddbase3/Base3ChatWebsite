@@ -43,10 +43,28 @@ use Base3Template\Usermanager\XrmUsermanager;
 use KeyHarborClient\Microservice\KeyHarborConnector;
 use Base3Tools\Status\File\FileStatusHandler;
 use Base3ChatWebsite\Content\Navigation;
+use Base3ChatWebsite\Chat\GlobalChatbotRenderOutput;
+use Base3ChatWebsite\FileManager\ChatbotFileManagerOutput;
+use ClientStack\FileManager\FileManagerHttpService;
 use ResourceFoundation\Api\IQueryService;
+use ResourceFoundation\Api\IManagedFileStorageService;
+use FileBridge\Local\LocalManagedFileStorageService;
+use Base3\Event\Api\IEventManager;
+use ClientStack\FileManager\FileUploadService;
 use DataHawk\Service\DataHawkMicroservice;
+use RuntimeException;
 
 class Base3ChatWebsitePlugin implements IPlugin {
+
+	private const FILE_MANAGER_SUBDIRECTORY = 'filemanager';
+
+	private static function getFileManagerRoot(IConfiguration $configuration): string {
+		$dataDirectory = rtrim(trim($configuration->getString('directories', 'data', '')), DIRECTORY_SEPARATOR);
+		if ($dataDirectory === '' || !str_starts_with($dataDirectory, DIRECTORY_SEPARATOR)) {
+			throw new RuntimeException('Missing absolute BASE3 data directory configuration: [directories] data.');
+		}
+		return $dataDirectory . DIRECTORY_SEPARATOR . self::FILE_MANAGER_SUBDIRECTORY;
+	}
 
 	public function __construct(private readonly IContainer $container) {}
 
@@ -62,6 +80,22 @@ class Base3ChatWebsitePlugin implements IPlugin {
 
 		$this->container
 			->set(self::getName(), $this, IContainer::SHARED)
+
+			// PageHeader opts this website into the shared ClientStack launcher.
+			->set('globalChatbotOutputName', GlobalChatbotRenderOutput::getName(), IContainer::PARAMETER)
+			->set('globalChatbotConfigGroup', GlobalChatbotRenderOutput::CONFIG_GROUP, IContainer::PARAMETER)
+			->set('globalChatbotConfigName', GlobalChatbotRenderOutput::CONFIG_NAME, IContainer::PARAMETER)
+
+			// Use the existing Chatbot SettingsTab display data for project-owned resources.
+			->set('chatbotConfigDisplayData', fn($c) => [
+				'group' => GlobalChatbotRenderOutput::CONFIG_GROUP,
+				'name' => GlobalChatbotRenderOutput::CONFIG_NAME,
+				'resources' => [
+					'enabled' => true,
+					'max_file_size' => FileManagerHttpService::DEFAULT_MAX_FILE_SIZE,
+					'endpoints' => ChatbotFileManagerOutput::buildEndpoints($c->get(ILinkTargetService::class))
+				]
+			], IContainer::SHARED)
 
                         ->set('session', fn($c) => new BasicSession($c->get(IConfiguration::class)), IContainer::SHARED)
                         ->set(ISession::class, 'session', IContainer::ALIAS)
@@ -138,6 +172,15 @@ class Base3ChatWebsitePlugin implements IPlugin {
 
                         ->set(IAssetResolver::class, fn() => new BaseAssetResolver, IContainer::SHARED)
 
+			->set(IManagedFileStorageService::class, fn($c) => new LocalManagedFileStorageService(
+				$c->get(IConfiguration::class),
+				$c->get(IEventManager::class),
+				self::getFileManagerRoot($c->get(IConfiguration::class))
+			), IContainer::SHARED)
+			->set(FileUploadService::class, fn($c) => new FileUploadService(
+				$c->get(IManagedFileStorageService::class),
+				self::getFileManagerRoot($c->get(IConfiguration::class)) . DIRECTORY_SEPARATOR . 'uploads'
+			), IContainer::SHARED)
 			->set(ISettingsStore::class, fn($c) => new DatabaseSettingsStore($c->get(IDatabase::class)), IContainer::SHARED)
 
 			->set(

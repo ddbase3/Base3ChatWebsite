@@ -15,9 +15,9 @@
                 }, {
                         "name": "jquerycookiebarpagemodule"
                 }, {
-                        "name": "base3pagemodule"
-                }, {
                         "name": "assetloaderpagemodule"
+                }, {
+                        "name": "base3pagemodule"
                 }
         ],
         "pagecontents": [
