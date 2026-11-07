@@ -12,7 +12,7 @@ The PHP entry class is `Base3ChatWebsite\Base3ChatWebsitePlugin`, and its class-
 
 ## Runtime dependencies
 
-The plugin uses BASE3 and the installed `AssistantFoundation`, `ResourceFoundation`, `MissionBay`, `Chatbot` and `DataHawk` modules. The demo pages also use the host's page modules and link-target service. The navigation template references an asset from `Base3Template`. Some agent flows additionally reference tools and providers supplied by the host or other installed plugins. The exact versions of these runtime implementations were not included with this module archive; the manifest declares hard module dependencies without inventing their minimum supported versions.
+The plugin uses BASE3 and the installed `AssistantFoundation`, `ResourceFoundation`, `MissionBay`, `Chatbot`, `DataHawk` and `Base3Backend` modules. `Base3Template` provides the website UI, while `Base3Backend` provides XRM clients, user context and audiences. The demo pages also use the host's page modules and link-target service. The navigation template references an asset from `Base3Template`. Some agent flows additionally reference tools and providers supplied by the host or other installed plugins. The exact versions of these runtime implementations were not included with this module archive; the manifest declares hard module dependencies without inventing their minimum supported versions.
 
 The examples require the host's existing service bindings, session/authentication setup, configuration, and, depending on the selected flow, API credentials and external services. Removing legacy streaming demo endpoints does not replace them with additional services or migrate stored conversations or log records.
 
@@ -44,13 +44,14 @@ See [PRIVACY.md](PRIVACY.md) for processing surfaces and deployment-specific unk
 
 ## Chat login and XRM user context
 
-Chat selects the reusable `Base3Template` identity adapters on its own `login.php` against XRM through the existing
-`IAuthentication::login(?array $credentials)` contract and the installed
-`KeyHarborClient` transport. It retains the authenticated XRM login in Chat's normal
+Chat uses the existing `Base3Template` login UI and the reusable `Base3Backend` XRM
+identity adapters on its own `login.php`. Authentication uses the existing
+`IAuthentication` contract and `Base3Backend\Microservice\KeyHarborConnector` transport.
+It retains the authenticated XRM login in Chat's normal
 `SessionAuth` session. There is no redirect, SSO login, local password database
 or dependency on the retired external `Account` microservice.
 
-The usermanager is selected from `Base3Template`, via the existing `UsermanagerProxy`, resolving
+The usermanager is selected from `Base3Backend`, via the existing `UsermanagerProxy`, resolving
 native XRM identity, groups, roles and global permission *metadata* on XRM.
 Access decisions remain the responsibility of `IAuthorizationService` at the
 owning resource. Login and basic user context require only `xrmauthenticationmicroservice.login` and
@@ -65,7 +66,7 @@ url = "https://xrm.base3.de"
 token = "b3k_..."
 ```
 
-After applying the site patch, run `php plugin/Base3ChatWebsite/scripts/rebuild_classmap.php` to register the new page module.
+After updating the site plugin, run `php plugin/Base3ChatWebsite/scripts/rebuild_classmap.php` to rebuild the existing BASE3 class map after removing the obsolete backend classes. The installed `Base3Template` must be version 1.2.0 or newer.
 
 The KeyHarbor token belongs to the trusted Chat server, not the browser. No
 additional local KeyHarbor server plugin, session mirror, or registration is
@@ -74,25 +75,28 @@ the exact KeyHarbor operation grant enabled before accepting Chat logins.
 
 ## Shared identity implementation
 
-The XRM login form and its reusable remote authentication and usermanager
-adapters are owned by the existing `Base3Template` plugin. The Chat project
-selects these services and builds two `KeyHarborClient` connectors. No
+The XRM login form remains owned by `Base3Template`. Its reusable remote
+authentication and usermanager adapters are owned by `Base3Backend`. The Chat
+project selects these services and builds two backend KeyHarbor connectors. No
 Chat-specific implementation or new plugin duplicates their logic. The
 `login.php` page uses the existing `loginblock` module, and the local
 `SessionAuth` maintains the verified XRM login. Only the existing `[xrm]`
 `url` and `token` configuration values are read.
 
-## Host-local authorization using shared template audiences (2026-11-05)
+## Host-local authorization using shared backend audiences (2026-11-07)
 
-Chat selects `Base3Template\Authorization\FeatureAuthorizationService` in
+Chat selects `Base3Backend\Authorization\FeatureAuthorizationService` in
 its project DI and delegates non-feature permissions to the existing
 `Base3SystemAuthorizationService`, using effective roles and permission metadata
 read from XRM through `XrmUsermanager`. The source of identity and native
 grants remains XRM; Chat does not introduce its own RBAC database, alternative
 credential checker, or feature policy language. The default
-`Base3Template\Authorization\AudienceCatalog` stores Chat feature/group
-overrides under the local database's `base3template` settings group; XRM's
-settings remain independent.
+`Base3Backend\Authorization\AudienceCatalog` stores Chat feature/group
+overrides in Chat's site-local database. The project explicitly selects the
+existing `base3template` settings group for this refactoring step. The backend's
+new default `base3_audiences` is not used until a separate manual migration
+of `authorization_groups` and `authorization_features`. There is no second
+settings source or fallback. XRM's settings remain independent.
 
 The shared `development` group matches exact trusted XRM login `dd`; it makes
 the feature settings tab visible even when no features have been configured.

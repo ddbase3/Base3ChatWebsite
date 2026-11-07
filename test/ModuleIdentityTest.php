@@ -18,7 +18,10 @@ final class ModuleIdentityTest extends TestCase {
 		$this->assertSame('Base3ChatWebsite', $manifest['name']);
 		$this->assertSame('Base3ChatWebsite', $manifest['namespace']);
 		$this->assertSame(1, $manifest['manifestVersion']);
-		foreach (['Base3Framework', 'AssistantFoundation', 'ResourceFoundation', 'Chatbot', 'MissionBay', 'DataHawk'] as $dependency) {
+		$this->assertSame('>=1.2.0', $manifest['dependencies']['Base3Template']);
+		$this->assertSame('>=1.0.0', $manifest['dependencies']['Base3Backend']);
+		$this->assertArrayNotHasKey('KeyHarborClient', $manifest['dependencies']);
+		foreach (['Base3Framework', 'AssistantFoundation', 'ResourceFoundation', 'Chatbot', 'MissionBay', 'DataHawk', 'Base3Backend', 'Base3Template'] as $dependency) {
 			$this->assertArrayHasKey($dependency, $manifest['dependencies']);
 		}
 	}

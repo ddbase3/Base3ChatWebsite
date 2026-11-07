@@ -2,7 +2,7 @@
     "manifestVersion": 1,
     "name": "Base3ChatWebsite",
     "namespace": "Base3ChatWebsite",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "BASE3 chat demo website and agent examples.",
     "dependencies": {
         "Base3Framework": ">=4.10.0",
@@ -11,9 +11,9 @@
         "DataHawk": "*",
         "MissionBay": "*",
         "ResourceFoundation": "*",
-        "Base3Template": ">=1.1.0",
+        "Base3Template": ">=1.2.0",
         "ModuledPage": "*",
-        "KeyHarborClient": ">=1.0.0",
+        "Base3Backend": ">=1.0.0",
         "ClientStack": ">=4.23.0",
         "FileBridge": ">=1.0.0"
     }

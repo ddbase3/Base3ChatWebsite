@@ -33,14 +33,14 @@ use Base3\Token\FileToken\FileToken;
 use Base3\Authorization\Api\IAuthorizationService;
 use Base3\Authorization\Base3System\Base3SystemAuthorizationService;
 use Base3\Usermanager\UserCriterionEvaluator;
-use Base3Template\Authorization\AudienceCatalog;
-use Base3Template\Authorization\AudienceEditor;
-use Base3Template\Authorization\FeatureAuthorizationService;
+use Base3Backend\Authorization\AudienceCatalog;
+use Base3Backend\Authorization\AudienceEditor;
+use Base3Backend\Authorization\FeatureAuthorizationService;
 use Base3\Usermanager\Api\IUsermanager;
 use Base3\Accesscontrol\Api\IAuthentication;
-use Base3Template\Authentication\XrmAuthentication;
-use Base3Template\Usermanager\XrmUsermanager;
-use KeyHarborClient\Microservice\KeyHarborConnector;
+use Base3Backend\Authentication\XrmAuthentication;
+use Base3Backend\Usermanager\XrmUsermanager;
+use Base3Backend\Microservice\KeyHarborConnector;
 use Base3Tools\Status\File\FileStatusHandler;
 use Base3ChatWebsite\Content\Navigation;
 use Base3ChatWebsite\Chat\GlobalChatbotRenderOutput;
@@ -57,6 +57,7 @@ use RuntimeException;
 class Base3ChatWebsitePlugin implements IPlugin {
 
 	private const FILE_MANAGER_SUBDIRECTORY = 'filemanager';
+	private const AUDIENCE_SETTINGS_GROUP = 'base3template';
 
 	private static function getFileManagerRoot(IConfiguration $configuration): string {
 		$dataDirectory = rtrim(trim($configuration->getString('directories', 'data', '')), DIRECTORY_SEPARATOR);
@@ -159,6 +160,11 @@ class Base3ChatWebsitePlugin implements IPlugin {
                         ->set('usermanager', IUsermanager::class, IContainer::ALIAS)
                         // XRM remains the identity and native grant owner. The shared
                         // feature evaluator reads this site's own declared audiences.
+                        // Preserve Chat's existing audience records until the separately approved DB rename.
+                        ->set(AudienceCatalog::class, fn($c) => new AudienceCatalog(
+                                $c->get(ISettingsStore::class), $c->get(IClassMap::class),
+                                $c->get(UserCriterionEvaluator::class), self::AUDIENCE_SETTINGS_GROUP
+                        ), IContainer::SHARED)
                         ->set(AudienceEditor::class, fn($c) => new AudienceEditor(
                                 $c->get(IClassMap::class), $c->get(UserCriterionEvaluator::class),
                                 $c->get(IUsermanager::class), 'xrmrolecriterion'

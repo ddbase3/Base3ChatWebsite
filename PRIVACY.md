@@ -32,7 +32,7 @@ The plugin registers the existing authentication and access-control middleware a
 
 ## 8. Recipients and external connections
 
-`DemoServiceSync` calls the configured `openai` endpoint's `/chat/completions` API and sends prompts. The retained agent-flow configuration refers to an OpenAI chat model, session memory and a Telegram tool, subject to actual availability and invocation. `PhotoMosaicDemoAgentTool.php` can embed `https://mosaic-creator.de/mosaicgallery.php?embed`; when displayed, the browser connects to that website. Chat authenticates human login credentials against the configured XRM microservice via the shared Base3Template login form and KeyHarbor-protected HTTPS server-to-server calls, then reads native user identity, groups, roles and permission catalog metadata through an XRM usermanager microservice. Chat maintains its own session identifier and current verified XRM login. A Data microservice can be used for DataHawk. Actual operators, jurisdictions and subprocessors are deployment-dependent.
+`DemoServiceSync` calls the configured `openai` endpoint's `/chat/completions` API and sends prompts. The retained agent-flow configuration refers to an OpenAI chat model, session memory and a Telegram tool, subject to actual availability and invocation. `PhotoMosaicDemoAgentTool.php` can embed `https://mosaic-creator.de/mosaicgallery.php?embed`; when displayed, the browser connects to that website. Chat authenticates human login credentials against the configured XRM microservice via the Base3Template login form and Base3Backend's KeyHarbor-protected HTTPS server-to-server calls, then reads native user identity, groups, roles and permission catalog metadata through an XRM usermanager microservice. Chat maintains its own session identifier and current verified XRM login. A Data microservice can be used for DataHawk. Actual operators, jurisdictions and subprocessors are deployment-dependent.
 
 ## 9. Credentials and configuration
 
@@ -82,6 +82,7 @@ Main wiring: `src/Base3ChatWebsitePlugin.php`. Request handlers: `src/Chat/` and
 
 - 2026-11-02: Created source-backed inventory for the renamed module. No runtime privacy behavior, retention policy or provider bindings were redesigned as part of the module-identity change.
 - 2026-11-03: Removed obsolete EventTransport/SSE and unsupported legacy streaming demos, their pages and static flow data. The remaining synchronous chat and agent flows are unchanged; historical external provider or host-side data is not deleted by this source change.
+- 2026-11-07: Replaced the removed KeyHarborClient and Base3Template backend class imports with Base3Backend. The same XRM endpoints, credentials, local session, authorization owner and existing site-local audience settings group remain in use. No records are copied or migrated in this source change.
 
 ## XRM identity integration (2026-11-05)
 
@@ -99,15 +100,18 @@ policy and operational verification; no live revocation guarantee is asserted.
 The host operator must assess network logs, recipients, retention, backups,
 accessibility and data-subject rights for the actual installations.
 
-The reusable `XrmIdentityClient` plugin owns the XRM login form, API calls, and
-remote usermanager adapter. `Base3ChatWebsite` only selects its services and
-retains the normal local BASE3 session; see `XrmIdentityClient/PRIVACY.md`.
+The `Base3Template` plugin owns the login form; `Base3Backend` owns the
+reusable remote authentication, signed XRM connector and usermanager adapter.
+`Base3ChatWebsite` composes those services and retains its existing BASE3
+session. See `Base3Backend/PRIVACY.md` for the shared backend data flows.
 
 ## Shared local audience administration (2026-11-05)
 
 Feature and group audience selections on Chat are stored in the existing
-site-local settings database in the `base3template` settings group. The shared
-Base3Template service evaluates the trusted XRM user identity and roles through
+site-local settings database in the original `base3template` settings group.
+`Base3ChatWebsite` explicitly keeps that one group selected until the separately
+planned manual migration to `base3_audiences`. The shared `Base3Backend` service
+evaluates the trusted XRM user identity and roles through
 the framework's criterion evaluator. Native permission metadata continues to
 come from XRM, and the existing framework `Base3SystemAuthorizationService`
 decides native `system/admin` for every admin action. The optional KeyHarbor

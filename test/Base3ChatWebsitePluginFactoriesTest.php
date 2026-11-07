@@ -6,8 +6,8 @@ use Base3\Authorization\Api\IAuthorizationService;
 use Base3\Authorization\Dto\AuthorizationRequest;
 use Base3\Usermanager\Permission;
 use Base3\Usermanager\UserCriterionEvaluator;
-use Base3Template\Authorization\AudienceCatalog;
-use Base3Template\Authorization\FeatureAuthorizationService;
+use Base3Backend\Authorization\AudienceCatalog;
+use Base3Backend\Authorization\FeatureAuthorizationService;
 use Base3\Accesscontrol\Api\IAccesscontrol;
 use Base3\Accesscontrol\Api\IAuthentication;
 use Base3\Accesscontrol\Selected\SelectedAccesscontrol;
@@ -29,9 +29,10 @@ use Base3\Settings\Api\ISettingsStore;
 use Base3\Settings\Database\DatabaseSettingsStore;
 use Base3\Token\Api\IToken;
 use Base3\Api\IClassMap;
-use Base3Template\Authentication\XrmAuthentication;
-use Base3Template\Usermanager\XrmUsermanager;
+use Base3Backend\Authentication\XrmAuthentication;
+use Base3Backend\Usermanager\XrmUsermanager;
 use Base3\Usermanager\Api\IUsermanager;
+use Base3Backend\Microservice\KeyHarborConnector;
 use Base3ChatWebsite\Content\Navigation;
 use Base3\Session\Api\ISession;
 use Base3ChatWebsite\Base3ChatWebsitePlugin;
@@ -112,16 +113,44 @@ final class Base3ChatWebsitePluginFactoriesTest extends TestCase {
 	}
 
 
-	public function testIdentityServiceUsesOnlyExistingTemplateAndKeyHarborClient(): void {
+	public function testIdentityServiceUsesExistingBackendConnectors(): void {
 		$definitions = $this->definitions();
 		$this->assertArrayHasKey('xrmauthenticationconnector', $definitions);
 		$this->assertArrayHasKey('xrmusermanagerconnector', $definitions);
 		$this->assertArrayNotHasKey('ssotoken', $definitions);
 		$this->assertSame('xrmusermanager', $definitions[IUsermanager::class][0]);
 		$this->assertSame(IContainer::ALIAS, $definitions[IUsermanager::class][1]);
+
+		$configuration = $this->createStub(IConfiguration::class);
+		$configuration->method('getString')->willReturn('https://xrm.base3.de');
+		$container = $this->container([IConfiguration::class => $configuration]);
+		$this->assertInstanceOf(KeyHarborConnector::class, ($definitions['xrmauthenticationconnector'][0])($container));
+		$this->assertInstanceOf(KeyHarborConnector::class, ($definitions['xrmusermanagerconnector'][0])($container));
 	}
 
-	public function testSettingsAuthorizationUsesSharedTemplateAndXrmGrantMetadata(): void {
+	public function testExistingAudienceSettingsRemainInTheirSingleOriginalGroup(): void {
+		$definitions = $this->definitions();
+		$this->assertArrayHasKey(AudienceCatalog::class, $definitions);
+		$this->assertSame(IContainer::SHARED, $definitions[AudienceCatalog::class][1]);
+
+		$reads = [];
+		$settings = $this->createStub(ISettingsStore::class);
+		$settings->method('get')->willReturnCallback(static function(string $group, string $name, array $default = []) use (&$reads): array {
+			$reads[] = [$group, $name];
+			return $default;
+		});
+		$classMap = $this->createStub(IClassMap::class);
+		$evaluator = new UserCriterionEvaluator($classMap);
+		$catalog = ($definitions[AudienceCatalog::class][0])($this->container([
+			ISettingsStore::class => $settings,
+			IClassMap::class => $classMap,
+			UserCriterionEvaluator::class => $evaluator
+		]));
+		$this->assertSame('', $catalog->getDefaultGroup());
+		$this->assertSame([['base3template', 'authorization_groups']], $reads);
+	}
+
+	public function testSettingsAuthorizationUsesSharedBackendAndXrmGrantMetadata(): void {
 		$definitions = $this->definitions();
 		$this->assertArrayHasKey(IAuthorizationService::class, $definitions);
 		$users = $this->createStub(IUsermanager::class);
